@@ -10,18 +10,27 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $min = $_POST['min_price'];
     $imageName = null;
 
-    if (!empty($_FILES['image']['name'])) {
-    $imageName = time() . '_' . basename($_FILES['image']['name']);
-    $target = "../images/" . $imageName;
-    move_uploaded_file($_FILES['image']['tmp_name'], $target);
+    if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+        $originalName = basename($_FILES['image']['name']);
+        $imageName = time() . '_' . $originalName;
+        $target = realpath(__DIR__ . '/../images') . DIRECTORY_SEPARATOR . $imageName;
+
+        if (move_uploaded_file($_FILES['image']['tmp_name'], $target)) {
+            // ✅ upload success
+        } else {
+            echo "<p style='color:red;'>Image upload failed</p>";
+        }
     }
 
-    $stmt = $conn->prepare("INSERT INTO products (name, description, price, min_price,image) VALUES (?, ?, ?, ?,?)");
-    $stmt->execute([$name, $desc, $price, $min,$imageName]);
+    // Save to DB
+    $stmt = $conn->prepare("INSERT INTO products (name, description, price, min_price, image) VALUES (?, ?, ?, ?, ?)");
+    $stmt->execute([$name, $desc, $price, $min, $imageName]);
+
     header("Location: products.php");
     exit();
 }
 ?>
+
 
 <h2>Add Product</h2>
 <form method="POST"  enctype="multipart/form-data">
