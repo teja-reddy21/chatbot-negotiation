@@ -20,7 +20,7 @@ if (!isset($_SESSION['admin'])) {
     <ul class="admin-menu">
       <li><a href="users.php">👥 View Users</a></li>
       <li><a href="cart.php">🛒 View All Carts</a></li>
-      <li><a href="negotiations.php">💬 View Negotiation History</a></li>
+      <li><a href="negotiation_history.php">💬 View Negotiation History</a></li>
       <li><a href="products.php">🛍️ Manage Products</a></li>
       <li><a href="logout.php">🔓 Logout</a></li>
     </ul>
