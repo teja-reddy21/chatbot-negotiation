@@ -6,6 +6,8 @@ if (!isset($_SESSION['user'])) {
     header("Location: login.php");
     exit();
 }
+
+$cartId = $_GET['cart_id'] ?? null;
 $user = $_SESSION['user'];
 
 $stmt = $conn->prepare("SELECT * FROM cart WHERE user_email = ?");
@@ -78,7 +80,8 @@ if (isset($_POST['add_to_cart'])) {
           <form method="POST" action="negotiate_cart.php">
             <input type="hidden" name="cart_id" value="<?= $item['id'] ?>">
             
-             <a href="negotiate.php?cart_id=<?= $item['id'] ?>">Negotiate</a>
+            <a href="../chatbot.php?cart_id=<?= $item['id'] ?>">Negotiate</a>
+
 
           </form>
         </td>
