@@ -1,137 +1,148 @@
 <?php
 session_start();
-include './includes/db.php';
+include 'includes/db.php';
 
-// Redirect to login if not logged in
 if (!isset($_SESSION['user'])) {
     header("Location: login.php");
     exit();
 }
 
-$user = $_SESSION['user'];
 $cartId = $_GET['cart_id'] ?? null;
-
 if (!$cartId) {
-    echo "No cart ID provided.";
+    echo "Cart ID is missing.";
     exit();
 }
 
-// Fetch product info from cart table
-$stmt = $conn->prepare("SELECT * FROM cart WHERE id = ? AND user_email = ?");
-$stmt->execute([$cartId, $user]);
+// Fetch cart item
+$stmt = $conn->prepare("SELECT * FROM cart WHERE id = ?");
+$stmt->execute([$cartId]);
 $cartItem = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$cartItem) {
-    echo "Invalid cart ID or no access.";
+    echo "Cart item not found.";
     exit();
 }
 
 $productName = $cartItem['product_name'];
-$productPrice = (float) $cartItem['price'];
-$minAcceptable = 850;
-// Reset chat if product changed
-if (!isset($_SESSION['current_cart_id']) || $_SESSION['current_cart_id'] != $cartId) {
-      $_SESSION['chat'] = [];
-    $_SESSION['current_cart_id'] = $cartId;
+$productPrice = $cartItem['price'];
+
+// Minimum acceptable price (e.g., 85% of product price)
+$minAcceptablePrice = round($productPrice * 0.85);
+
+if (!isset($_SESSION['chat'])) {
+    $_SESSION['chat'] = [];
+    $_SESSION['deal_done'] = false;
 }
 
-// Handle user message
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message'])) {
-    $userMessage = trim($_POST['message']);
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['user_message'])) {
+    $userMessage = trim($_POST['user_message']);
 
-    $_SESSION['chat'][] = ["user", htmlspecialchars($userInput)];
+    if ($userMessage !== '') {
+        $_SESSION['chat'][] = ['from' => 'user', 'text' => "User: $userMessage"];
 
-    // Extract number from message using regex
-    preg_match('/\d+/', $userMessage, $matches);
-    $offer = isset($matches[0]) ? (float)$matches[0] : null;
+        // Extract numeric value
+        $offer = (int) filter_var($userMessage, FILTER_SANITIZE_NUMBER_INT);
 
-    if ($offer) {
-         if ($offer >= $minAcceptable) {
-            $_SESSION['chat'][] = ["bot", "✅ Deal accepted at ₹" . number_format($offer, 2) . ". Go to <a href='../cart.php'>Cart</a>"];
-            $_SESSION['msg'] = "Deal for $productName accepted at ₹$offer.";
-            header("Location: cart.php");
-            exit();
+        if ($offer >= $minAcceptablePrice) {
+            $response = "✅ Deal accepted at ₹" . number_format($offer, 2) . ". <a href='cart.php'>Go to Cart</a>";
+            $_SESSION['deal_done'] = true;
         } else {
-            $_SESSION['chat'][] = ["bot", "❌ Your offer ₹" . number_format($offer, 2) . " is too low. Try something better!"];
+            $response = "❌ Your offer ₹" . number_format($offer, 2) . " is too low. Try something better!";
         }
-    } else {
-        $_SESSION['chat'][] = ["bot", "❓ I couldn't find a price in your message. Please mention your offer like 'I can pay 1000'."];
+
+        $_SESSION['chat'][] = ['from' => 'bot', 'text' => "Bot: $response"];
     }
 }
 ?>
 
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Price Negotiation Chatbot</title>
-    <link rel="stylesheet" href="./css/style.css">
-    <style>
-        .chatbox {
-            max-width: 600px;
-            margin: 40px auto;
-            border: 1px solid #ccc;
-            padding: 20px;
-            border-radius: 10px;
-            background: #fdfdfd;
-        }
-        .chat-log {
-            border: 1px solid #ddd;
-            height: 300px;
-            overflow-y: scroll;
-            padding: 10px;
-            background: #fff;
-            margin-bottom: 15px;
-        }
-        .chat-log .user { color: #007bff; margin-bottom: 5px; }
-        .chat-log .bot { color: #28a745; margin-bottom: 5px; }
-        .chat-form input[type="text"] {
-            width: 80%;
-            padding: 10px;
-        }
-        .chat-form button {
-            padding: 10px 15px;
-        }
-        .product-info {
-            background: #f8f9fa;
-            padding: 10px;
-            margin-bottom: 15px;
-            border-radius: 5px;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>Chatbot Negotiation</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f4f4f4;
+    }
+    .chat-box {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 600px;
+      margin: auto;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .message {
+      margin: 10px 0;
+      padding: 10px;
+      border-radius: 8px;
+    }
+    .user-message {
+      background-color: #d0f0fd;
+      text-align: right;
+    }
+    .bot-message {
+      background-color: #e0ffe0;
+      text-align: left;
+    }
+    .chat-input {
+      display: flex;
+      margin-top: 15px;
+    }
+    .chat-input input {
+      flex: 1;
+      padding: 10px;
+      border-radius: 5px 0 0 5px;
+      border: 1px solid #ccc;
+    }
+    .chat-input button {
+      padding: 10px 15px;
+      border: none;
+      background-color: #28a745;
+      color: white;
+      border-radius: 0 5px 5px 0;
+      cursor: pointer;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 15px;
+    }
+    .chat-heading {
+      font-size: 18px;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+  </style>
 </head>
 <body>
-    <div class="chatbox">
-        <h2>🗣️ Price Negotiation Chatbot</h2>
-
-        <div class="product-info">
-            <strong>Product:</strong> <?= htmlspecialchars($productName) ?><br>
-            <strong>Maximum Price:</strong> ₹<?= number_format($productPrice, 2) ?>
-        </div>
-
-        <div class="chat-log" id="chat-log">
-            <?php if (!empty($_SESSION['chat'])): ?>
-                <?php foreach ($_SESSION['chat_history'] as $msg): ?>
-                    <div class="<?= $msg['from'] ?>">
-                        <strong><?= ucfirst($msg['from']) ?>:</strong> <?= $msg['text'] ?>
-                    </div>
-                <?php endforeach; ?>
-            <?php else: ?>
-                <div class="bot"><strong>Bot:</strong> Hi! Let's negotiate the price. Please enter your offer.</div>
-            <?php endif; ?>
-        </div>
-
-        <form class="chat-form" method="POST">
-            <input type="text" name="message" placeholder="Enter your offer..." required>
-            <button type="submit">Send</button>
-        </form>
-
-        <p><a href="./cart.php">← Back to Cart</a></p>
+  <div class="chat-box">
+    <h2>🗣️ Price Negotiation Chatbot</h2>
+    <div class="chat-heading">
+      <strong>Product:</strong> <?= htmlspecialchars($productName) ?><br>
+      <strong>Maximum Price:</strong> ₹<?= number_format($productPrice, 2) ?>
     </div>
 
-    <script>
-        // Scroll chat to bottom on load
-        const log = document.getElementById("chat-log");
-        log.scrollTop = log.scrollHeight;
-    </script>
+    <?php if (!empty($_SESSION['chat'])): ?>
+      <?php foreach ($_SESSION['chat'] as $message): ?>
+        <?php if (is_array($message) && isset($message['from'], $message['text'])): ?>
+          <div class="message <?= $message['from'] === 'user' ? 'user-message' : 'bot-message' ?>">
+            <?= $message['text'] ?>
+          </div>
+        <?php endif; ?>
+      <?php endforeach; ?>
+    <?php endif; ?>
+
+    <?php if (empty($_SESSION['deal_done'])): ?>
+
+      <form method="POST" class="chat-input">
+        <input type="text" name="user_message" placeholder="Enter your offer (e.g., 800)" required>
+        <button type="submit">Send</button>
+      </form>
+    <?php else: ?>
+      <p style="text-align:center; color:green;">🎉 Deal finalized. Go to <a href="cart.php">Cart</a> to proceed.</p>
+    <?php endif; ?>
+  </div>
 </body>
 </html>
