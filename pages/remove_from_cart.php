@@ -22,5 +22,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['cart_id'])) {
     header("Location: cart.php");
     exit();
 } else {
-    echo "Invalid request.";
+     $_SESSION['msg'] = "❌ Invalid request.";
+    header("Location: cart.php");
+    exit();
 }

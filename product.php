@@ -11,8 +11,6 @@ $userEmail = $_SESSION['user'];
 
 
 
-$stmt = $conn->query("SELECT * FROM products LIMIT 1");
-$product = $stmt->fetch(PDO::FETCH_ASSOC);
 ?>
 
 
@@ -58,19 +56,25 @@ $stmt = $conn->query("SELECT * FROM products");
 $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
+
 <div class="product-list">
   <?php foreach ($products as $product) : ?>
     <div class="product-card">
       <h3><?= htmlspecialchars($product['name']) ?></h3>
       <p><?= htmlspecialchars($product['description']) ?></p>
       <p>Price: ₹<?= number_format($product['price'], 2) ?></p>
-      
+     
       <form method="POST" action="pages/cart.php">
         <input type="hidden" name="product_id" value="<?= $product['id'] ?>">
         <button type="submit" name="add_to_cart">Add to Cart</button>
       </form>
     </div>
   <?php endforeach; ?>
+
+  
+
+
+
 </div>
 
 

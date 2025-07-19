@@ -21,9 +21,7 @@ $products = $conn->query("SELECT * FROM products ORDER BY id DESC")->fetchAll(PD
         <a href="delete_product.php?id=<?= $product['id'] ?>" onclick="return confirm('Are you sure?');">Delete</a>
       </td>
       <td>
-  <?php if (!empty($product['image'])): ?>
-  <img src="images/<?= htmlspecialchars($product['image']) ?>" class="product-image" width="200">
-<?php endif; ?>
+  
 
 </td>
 
