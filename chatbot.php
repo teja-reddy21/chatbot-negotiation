@@ -29,28 +29,39 @@ $productPrice = $cartItem['price'];
 // Minimum acceptable price (e.g., 85% of product price)
 $minAcceptablePrice = round($productPrice * 0.85);
 
-if (!isset($_SESSION['chat'])) {
+if (!isset($_SESSION['chat']) || !is_array($_SESSION['chat'])) {
     $_SESSION['chat'] = [];
-    $_SESSION['deal_done'] = false;
 }
+
+if (!isset($_SESSION['deal_done']) || !is_array($_SESSION['deal_done'])) {
+    $_SESSION['deal_done'] = [];
+}
+
+
+if (!isset($_SESSION['chat'][$cartId])) {
+    $_SESSION['chat'][$cartId] = [];
+    $_SESSION['deal_done'][$cartId] = false;
+}
+
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['user_message'])) {
     $userMessage = trim($_POST['user_message']);
 
     if ($userMessage !== '') {
-        $_SESSION['chat'][] = ['from' => 'user', 'text' => "User: $userMessage"];
+        $_SESSION['chat'][$cartId][] = ['from' => 'user', 'text' => "User: $userMessage"];
 
         // Extract numeric value
         $offer = (int) filter_var($userMessage, FILTER_SANITIZE_NUMBER_INT);
 
         if ($offer >= $minAcceptablePrice) {
-            $response = "✅ Deal accepted at ₹" . number_format($offer, 2) . ". <a href='cart.php'>Go to Cart</a>";
-            $_SESSION['deal_done'] = true;
+
+          $_SESSION['deal_done'][$cartId] = true;
+
         } else {
             $response = "❌ Your offer ₹" . number_format($offer, 2) . " is too low. Try something better!";
         }
 
-        $_SESSION['chat'][] = ['from' => 'bot', 'text' => "Bot: $response"];
+        $_SESSION['chat'][$cartId][] = ['from' => 'bot', 'text' => "Bot: $response"];
     }
 }
 ?>
@@ -124,8 +135,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['user_message'])) {
       <strong>Maximum Price:</strong> ₹<?= number_format($productPrice, 2) ?>
     </div>
 
-    <?php if (!empty($_SESSION['chat'])): ?>
-      <?php foreach ($_SESSION['chat'] as $message): ?>
+    <?php if (!empty($_SESSION['chat'][$cartId])): ?>
+      <?php foreach ($_SESSION['chat'][$cartId] as $message): ?>
         <?php if (is_array($message) && isset($message['from'], $message['text'])): ?>
           <div class="message <?= $message['from'] === 'user' ? 'user-message' : 'bot-message' ?>">
             <?= $message['text'] ?>
@@ -134,14 +145,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['user_message'])) {
       <?php endforeach; ?>
     <?php endif; ?>
 
-    <?php if (empty($_SESSION['deal_done'])): ?>
+    <?php if (empty($_SESSION['deal_done'][$cartId])): ?>
 
       <form method="POST" class="chat-input">
         <input type="text" name="user_message" placeholder="Enter your offer (e.g., 800)" required>
         <button type="submit">Send</button>
       </form>
     <?php else: ?>
-      <p style="text-align:center; color:green;">🎉 Deal finalized. Go to <a href="cart.php">Cart</a> to proceed.</p>
+      <p style="text-align:center; color:green;">🎉 Deal finalized. Go to <a href="pages/cart.php">Cart</a> to proceed.</p>
     <?php endif; ?>
   </div>
 </body>
