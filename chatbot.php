@@ -56,6 +56,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['user_message'])) {
         if ($offer >= $minAcceptablePrice) {
 
           $_SESSION['deal_done'][$cartId] = true;
+           $response = "🎉 Congratulations! Your offer ₹" . number_format($offer, 2) . " is accepted.";
+
+
+            // Update final_price in cart immediately
+            $stmt = $conn->prepare("UPDATE cart SET final_price = ? WHERE id = ?");
+            $stmt->execute([$offer, $cartId]);
 
         } else {
             $response = "❌ Your offer ₹" . number_format($offer, 2) . " is too low. Try something better!";
@@ -63,6 +69,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['user_message'])) {
 
         $_SESSION['chat'][$cartId][] = ['from' => 'bot', 'text' => "Bot: $response"];
     }
+}
+if (isset($_POST['submit_offer'])) {
+    $cartId = $_POST['cart_id'];
+    $negotiatedPrice = $_POST['negotiated_price']; // the price user negotiated
+
+    // Update cart with final price
+    $stmt = $conn->prepare("UPDATE cart SET final_price = ? WHERE id = ?");
+    $stmt->execute([$negotiatedPrice, $cartId]);
+
+    $_SESSION['msg'] = "Negotiated price saved!";
+    header("Location: cart.php"); // redirect back to cart or to payment
+    exit();
 }
 ?>
 
@@ -154,6 +172,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['user_message'])) {
     <?php else: ?>
       <p style="text-align:center; color:green;">🎉 Deal finalized. Go to <a href="pages/cart.php">Cart</a> to proceed.</p>
     <?php endif; ?>
-  </div>
+    
 </body>
 </html>

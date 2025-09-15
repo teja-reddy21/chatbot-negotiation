@@ -7,6 +7,20 @@ if (!isset($_SESSION['user'])) {
     exit();
 }
 
+
+if (isset($_POST['submit_offer'])) {
+    $cartId = $_POST['cart_id'];
+    $negotiatedPrice = $_POST['negotiated_price']; // price entered by user
+
+    // Update cart table with final_price
+    $stmt = $conn->prepare("UPDATE cart SET final_price = ? WHERE id = ?");
+    $stmt->execute([$negotiatedPrice, $cartId]);
+
+    $_SESSION['msg'] = "Negotiated price saved!";
+    header("Location: cart.php");
+    exit();
+}
+
 $cartId = $_GET['cart_id'] ?? null;
 $user = $_SESSION['user'];
 
@@ -65,6 +79,7 @@ if (isset($_POST['add_to_cart'])) {
     <tr>
       <th>Product</th>
       <th>Price</th>
+      <th>final_price</th>
       <th>Added On</th>
       <th>Negotiate</th>
       <th>Action</th>
@@ -73,6 +88,8 @@ if (isset($_POST['add_to_cart'])) {
       <tr>
         <td><?= htmlspecialchars($item['product_name']) ?></td>
         <td>₹<?= number_format($item['price'], 2) ?></td>
+        <td>₹<?= number_format($item['final_price'] ?? $item['price'], 2) ?></td>
+
         <td><?= $item['added_at'] ?></td>
 
         <!-- Negotiate Form -->
@@ -96,6 +113,14 @@ if (isset($_POST['add_to_cart'])) {
       </tr>
     <?php endforeach; ?>
   </table>
+
+ <!-- Proceed to Payment -->
+        <div style="margin-top:20px; text-align:center;">
+            <a href="payment.php">
+                <button style="padding:10px 20px; font-size:16px;">Proceed to Payment 💳</button>
+            </a>
+        </div>
+
 <?php endif; ?>
 
 

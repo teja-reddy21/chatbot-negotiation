@@ -14,8 +14,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
    
     // Save to DB
-    $stmt = $conn->prepare("INSERT INTO products (name, description, price, min_price) VALUES (?, ?, ?, ?, ?)");
-    $stmt->execute([$name, $desc, $price, $min]);
+    $stmt = $conn->prepare("INSERT INTO products (name, description, price, min_price) VALUES (?, ?, ?, ?)");
+$stmt->execute([$name, $desc, $price, $min]);
+
 
     header("Location: products.php");
     exit();
